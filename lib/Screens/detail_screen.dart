@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:laptopharbor01/Screens/Cart_Screen.dart';
 import 'package:laptopharbor01/Screens/Checkout_Screen.dart';
+import 'package:laptopharbor01/services/cart_service.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Map<String, dynamic>? product;
@@ -69,7 +70,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return Image.network(
         url,
-        height: 180,
+        height: 220,
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) =>
             const Icon(Icons.laptop_mac, size: 100, color: Color(0xFF1565C0)),
@@ -86,7 +87,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     } else if (url.startsWith('assets/')) {
       return Image.asset(
         url,
-        height: 180,
+        height: 220,
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) =>
             const Icon(Icons.laptop_mac, size: 100, color: Color(0xFF1565C0)),
@@ -160,13 +161,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Icons.check_circle_outline;
   }
 
-  void _handleAddToCart() async {
+  void _handleAddToCart() {
+    // Add real product to global CartManager
+    CartManager.instance.addItem(_p, quantity: _quantity);
+
     setState(() => _addedToCart = true);
+
+    // Hide any previous snackbar and show new one
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.check_circle, color: Colors.white),
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -177,21 +184,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ],
         ),
         backgroundColor: const Color(0xFF2E7D32),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
         action: SnackBarAction(
           label: 'VIEW CART',
           textColor: Colors.white,
           onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const CartScreen()),
             );
           },
         ),
-        duration: const Duration(seconds: 3),
       ),
     );
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) setState(() => _addedToCart = false);
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _addedToCart = false);
+    });
+  }
+
+  String _formatRating(dynamic rating) {
+    if (rating == null) return '4.8';
+    final val = double.tryParse(rating.toString());
+    if (val != null) {
+      return val.toStringAsFixed(1);
+    }
+    return rating.toString();
   }
 
   @override
@@ -251,6 +271,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               _inWishlist ? Icons.favorite : Icons.favorite_border,
               () {
                 setState(() => _inWishlist = !_inWishlist);
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -302,7 +323,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget _buildImageCarousel(List<String> images) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      height: 220,
+      height: 240,
       decoration: BoxDecoration(
         color: const Color(0xFFF0F4F8),
         borderRadius: BorderRadius.circular(16),
@@ -419,17 +440,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   color: Color(0xFF1565C0),
                 ),
               ),
-              if (_p['discountPrice'] != null) ...[
-                const SizedBox(width: 10),
-                Text(
-                  '₹${_p['discountPrice']}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey,
-                    decoration: TextDecoration.lineThrough,
-                  ),
-                ),
-              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -438,7 +448,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               const Icon(Icons.star, color: Color(0xFFF59E0B), size: 20),
               const SizedBox(width: 4),
               Text(
-                '${_p['rating'] ?? 4.5}',
+                _formatRating(_p['rating']),
                 style:
                     const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
               ),
@@ -718,6 +728,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           Expanded(
             child: OutlinedButton(
               onPressed: () {
+                CartManager.instance.addItem(_p, quantity: _quantity);
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const CheckoutScreen()),
@@ -744,7 +755,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: _addedToCart ? null : _handleAddToCart,
+              onPressed: _handleAddToCart,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _addedToCart
                     ? const Color(0xFF2E7D32)

@@ -9,7 +9,7 @@ import 'package:laptopharbor01/Screens/product_screen.dart';
 import 'package:laptopharbor01/Screens/wishlist_screen.dart';
 import 'package:laptopharbor01/Screens/orders_screen.dart';
 import 'package:laptopharbor01/Screens/Login_Screen.dart';
-import 'package:laptopharbor01/Screens/dashboard_screen.dart';
+import 'package:laptopharbor01/services/cart_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -132,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'description':
           'Asus VivoBook 15 with NanoEdge bezel display and lightweight portable chassis.',
       'specs': {
-        'display': '15.6" FHD NanoEdge Slim Bezel',
+        'display': '15.6" NanoEdge FHD',
         'cpu': 'Intel Core i5-1135G7 11th Gen',
         'ram': '16GB DDR4 | 512GB NVMe SSD',
         'gpu': 'Intel Iris Xe Graphics',
@@ -148,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Widget _buildProductImage(dynamic imageSource, {double height = 90}) {
+  Widget _buildProductImage(dynamic imageSource, {double height = 110}) {
     String url = '';
     if (imageSource is List && imageSource.isNotEmpty) {
       url = imageSource.first.toString();
@@ -201,11 +201,20 @@ class _HomeScreenState extends State<HomeScreen> {
       child: const Center(
         child: Icon(
           Icons.laptop_mac,
-          size: 40,
+          size: 44,
           color: Color(0xFF1565C0),
         ),
       ),
     );
+  }
+
+  String _formatRating(dynamic rating) {
+    if (rating == null) return '4.8';
+    final val = double.tryParse(rating.toString());
+    if (val != null) {
+      return val.toStringAsFixed(1);
+    }
+    return rating.toString();
   }
 
   @override
@@ -402,45 +411,53 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                     },
                   ),
-                  Stack(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.shopping_cart_outlined,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const CartScreen()),
-                          );
-                        },
-                      ),
-                      Positioned(
-                        right: 6,
-                        top: 6,
-                        child: Container(
-                          width: 16,
-                          height: 16,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFF5252),
-                            shape: BoxShape.circle,
+                  ValueListenableBuilder<int>(
+                    valueListenable: CartManager.instance.cartCountNotifier,
+                    builder: (context, count, child) {
+                      return Stack(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.shopping_cart_outlined,
+                              color: Colors.white,
+                              size: 26,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const CartScreen()),
+                              );
+                            },
                           ),
-                          child: const Center(
-                            child: Text(
-                              '2',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
+                          if (count > 0)
+                            Positioned(
+                              right: 6,
+                              top: 6,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFF5252),
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  '$count',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                    ],
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
@@ -684,6 +701,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildFirestoreFeaturedProducts() {
     final selectedBrand = _categories[_selectedCategory]['name'] as String;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final crossAxisCount = screenWidth > 1200 ? 4 : (screenWidth > 768 ? 3 : 2);
+    final childAspectRatio = screenWidth > 768 ? 0.85 : 0.78;
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('products').snapshots(),
@@ -694,7 +714,6 @@ class _HomeScreenState extends State<HomeScreen> {
           for (var doc in snapshot.data!.docs) {
             final data = doc.data() as Map<String, dynamic>;
             data['id'] = doc.id;
-            // Normalize fields
             if (!data.containsKey('brand') && data.containsKey('categoryId')) {
               data['brand'] = data['categoryId'].toString().toUpperCase();
             }
@@ -778,11 +797,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
-                    childAspectRatio: 0.74,
+                    childAspectRatio: childAspectRatio,
                   ),
                   itemCount: displayed.length,
                   itemBuilder: (context, index) {
@@ -790,7 +809,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     final String id = product['id']?.toString() ?? '$index';
                     final bool isWishlisted = _wishlist.contains(id);
 
-                    // Formatted Price string
                     String priceStr = '';
                     if (product['price'] != null) {
                       priceStr = '₹${product['price']}';
@@ -828,7 +846,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Container(
-                                  height: 115,
+                                  height: 130,
                                   decoration: const BoxDecoration(
                                     color: Color(0xFFF0F4F8),
                                     borderRadius: BorderRadius.vertical(
@@ -838,7 +856,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Center(
                                     child: _buildProductImage(
                                       product['images'] ?? product['image'],
-                                      height: 85,
+                                      height: 100,
                                     ),
                                   ),
                                 ),
@@ -877,7 +895,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                           const SizedBox(width: 3),
                                           Text(
-                                            '${product['rating'] ?? 4.5}',
+                                            _formatRating(product['rating']),
                                             style: const TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w600,

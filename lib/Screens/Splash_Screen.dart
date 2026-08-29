@@ -1,8 +1,8 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:laptopharbor01/Screens/dashboard_screen.dart';
-import 'login_screen.dart'; // apna next page import karo
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:laptopharbor01/Screens/home_screen.dart';
+import 'package:laptopharbor01/Screens/Login_Screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -16,12 +16,21 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    // 3 second baad next page pe jayega
-    Timer(const Duration(seconds: 30), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+    // 1.5 seconds smooth splash transition
+    Timer(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
     });
   }
 
@@ -43,31 +52,47 @@ class _SplashScreenState extends State<SplashScreen> {
             const Spacer(),
 
             // Logo
-            Image.asset('assets/image/shopping.png', height: 130),
+            Image.asset(
+              'assets/image/shopping.png',
+              height: 120,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.laptop_mac,
+                size: 90,
+                color: Colors.white,
+              ),
+            ),
 
             const SizedBox(height: 20),
 
             const Text(
               "LaptopHarbor",
               style: TextStyle(
-                fontSize: 36,
+                fontSize: 34,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
+                letterSpacing: -0.5,
               ),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
 
             const Text(
               "Find Your Perfect Laptop",
-              style: TextStyle(fontSize: 18, color: Colors.white70),
+              style: TextStyle(fontSize: 16, color: Colors.white70),
             ),
 
             const Spacer(),
 
-            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2.5,
+              ),
+            ),
 
-            const SizedBox(height: 50),
+            const SizedBox(height: 40),
           ],
         ),
       ),
