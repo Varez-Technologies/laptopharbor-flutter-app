@@ -1,44 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:laptopharbor01/Screens/add_product_screen.dart';
 
-class ProductManagementScreen extends StatelessWidget {
+class ProductManagementScreen extends StatefulWidget {
   const ProductManagementScreen({super.key});
+
+  @override
+  State<ProductManagementScreen> createState() => _ProductManagementScreenState();
+}
+
+class _ProductManagementScreenState extends State<ProductManagementScreen> {
+  String _selectedTab = 'All';
+
+  Widget _buildProductImage(dynamic imageSource) {
+    String url = '';
+    if (imageSource is List && imageSource.isNotEmpty) {
+      url = imageSource.first.toString();
+    } else if (imageSource is String) {
+      url = imageSource;
+    }
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return Image.network(
+        url,
+        width: 60,
+        height: 60,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(Icons.laptop, size: 30, color: Colors.deepPurple),
+      );
+    } else if (url.startsWith('assets/')) {
+      return Image.asset(
+        url,
+        width: 60,
+        height: 60,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(Icons.laptop, size: 30, color: Colors.deepPurple),
+      );
+    }
+    return const Icon(Icons.laptop, size: 30, color: Colors.deepPurple);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
-
-      // Bottom Navigation
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2,
-        selectedItemColor: Colors.deepPurple,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_outlined),
-            label: "Dashboard",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag_outlined),
-            label: "Orders",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view),
-            label: "Products",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people_outline),
-            label: "Users",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu),
-            label: "More",
-          ),
-        ],
-      ),
-
       body: SafeArea(
         child: Column(
           children: [
@@ -55,20 +60,18 @@ class ProductManagementScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  // Header Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
-                        children: const [
-                          Icon(
-                            Icons.arrow_back_ios,
-                            color: Colors.white,
-                            size: 20,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+                            onPressed: () => Navigator.pop(context),
                           ),
-                          SizedBox(width: 8),
-                          Text(
-                            "Products",
+                          const SizedBox(width: 4),
+                          const Text(
+                            "Manage Products",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 20,
@@ -77,102 +80,41 @@ class ProductManagementScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-
-                    GestureDetector(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const AddProductScreen(),
-      ),
-    );
-  },
-  child: Container(
-    padding: const EdgeInsets.symmetric(
-      horizontal: 14,
-      vertical: 10,
-    ),
-    decoration: BoxDecoration(
-      color: Colors.deepPurpleAccent,
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Row(
-      children: [
-        Icon(
-          Icons.add,
-          color: Colors.white,
-          size: 18,
-        ),
-        SizedBox(width: 5),
-        Text(
-          "Add",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    ),
-  ),
-),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Search + Filter
-                  Row(
-                    children: [
-                      Expanded(
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AddProductScreen(),
+                            ),
+                          );
+                        },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
                           ),
-                          child: Row(
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurpleAccent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
                             children: [
                               Icon(
-                                Icons.search,
-                                color: Colors.grey.shade500,
+                                Icons.add,
+                                color: Colors.white,
+                                size: 18,
                               ),
-                              const SizedBox(width: 10),
+                              SizedBox(width: 5),
                               Text(
-                                "Search products...",
+                                "Add",
                                 style: TextStyle(
-                                  color: Colors.grey.shade500,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      Container(
-                        height: 50,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.filter_alt_outlined,
-                              color: Colors.deepPurple.shade700,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              "Filter",
-                              style: TextStyle(
-                                color: Colors.deepPurple.shade700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                     ],
@@ -183,187 +125,150 @@ class ProductManagementScreen extends StatelessWidget {
 
             const SizedBox(height: 18),
 
-            // Tabs
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  tabItem("All (512)", true),
-                  tabItem("Active (490)", false),
-                  tabItem("Inactive (22)", false),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 15),
-
-            // Product List
+            // Product List from Firestore
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                children:  [
-                  ProductTile(
-                    image:
-                        "assets/image/Laptopphoto.png",
-                        
-                    title: "Dell XPS 13",
-                    price: "₹99,990",
-                    active: true,
-                  ),
-                  ProductTile(
-                    image:
-                        "assets/image/Laptopphoto.png",
-                    title: "HP Pavilion 15",
-                    price: "₹56,990",
-                    active: true,
-                  ),
-                  ProductTile(
-                    image:
-                        "assets/image/Laptopphoto.png",
-                    title: "MacBook Air M2",
-                    price: "₹1,09,990",
-                    active: true,
-                  ),
-                  ProductTile(
-                    image:
-                        "assets/image/Laptopphoto.png",
-                    title: "Lenovo IdeaPad 3",
-                    price: "₹45,990",
-                    active: true,
-                  ),
-                  ProductTile(
-                    image:
-                        "assets/image/Laptopphoto.png",
-                    title: "Asus Vivobook 15",
-                    price: "₹49,990",
-                    active: false,
-                  ),
-                ],
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('products').snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator(color: Colors.deepPurple));
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "No products in Firestore.\nTap '+ Add' to create one.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                    );
+                  }
+
+                  final docs = snapshot.data!.docs;
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final doc = docs[index];
+                      final data = doc.data() as Map<String, dynamic>;
+                      final name = data['name']?.toString() ?? 'Unnamed';
+                      final price = data['price'] != null ? '₹${data['price']}' : '₹49,990';
+                      final bool active = data['isActive'] ?? true;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: _buildProductImage(data['images'] ?? data['image']),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    price,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: Color(0xff2D0C8B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () async {
+                                await FirebaseFirestore.instance
+                                    .collection('products')
+                                    .doc(doc.id)
+                                    .update({'isActive': !active});
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: active
+                                      ? Colors.green.withOpacity(0.1)
+                                      : Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  active ? "Active" : "Inactive",
+                                  style: TextStyle(
+                                    color: active ? Colors.green : Colors.red,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                              onPressed: () async {
+                                bool? confirm = await showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Delete Product'),
+                                    content: Text('Delete $name from Firestore?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                        onPressed: () => Navigator.pop(ctx, true),
+                                        child: const Text('Delete', style: TextStyle(color: Colors.white)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true) {
+                                  await FirebaseFirestore.instance
+                                      .collection('products')
+                                      .doc(doc.id)
+                                      .delete();
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget tabItem(String title, bool selected) {
-    return Column(
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: selected ? Colors.deepPurple : Colors.grey,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          height: 3,
-          width: 70,
-          color: selected ? Colors.deepPurple : Colors.transparent,
-        ),
-      ],
-    );
-  }
-}
-
-// Product Tile Widget
-class ProductTile extends StatelessWidget {
-  final String image;
-  final String title;
-  final String price;
-  final bool active;
-
-  const ProductTile({
-    super.key,
-    required this.image,
-    required this.title,
-    required this.price,
-    required this.active,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          // Product Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.asset(
-              image,
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
-            ),
-          ),
-
-          const SizedBox(width: 14),
-
-          // Product Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                Text(
-                  price,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Status
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color: active
-                  ? Colors.green.withOpacity(0.1)
-                  : Colors.red.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              active ? "Active" : "Inactive",
-              style: TextStyle(
-                color: active ? Colors.green : Colors.red,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-            ),
-          ),
-
-          const SizedBox(width: 10),
-
-          const Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color: Colors.grey,
-          ),
-        ],
       ),
     );
   }

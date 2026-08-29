@@ -1,99 +1,219 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:laptopharbor01/Screens/detail_screen.dart';
+import 'package:laptopharbor01/Screens/Cart_Screen.dart';
+import 'package:laptopharbor01/Screens/wishlist_screen.dart';
+import 'package:laptopharbor01/Screens/Profile_Screen.dart';
 
 class ProductListingScreen extends StatefulWidget {
-  const ProductListingScreen({super.key});
+  final String? initialBrand;
+  final String? initialQuery;
+
+  const ProductListingScreen({
+    super.key,
+    this.initialBrand,
+    this.initialQuery,
+  });
 
   @override
   State<ProductListingScreen> createState() => _ProductListingScreenState();
 }
 
 class _ProductListingScreenState extends State<ProductListingScreen> {
-  final Set<int> _wishlist = {};
-  String _selectedBrand = 'All';
+  final Set<String> _wishlist = {};
+  late String _selectedBrand;
   String _sortBy = 'default';
   int _selectedNavIndex = 1;
-
-  final List<Map<String, dynamic>> _allProducts = [
-    {
-      'id': 1,
-      'name': 'Dell XPS 13',
-      'brand': 'Dell',
-      'price': 99990,
-      'displayPrice': '₹99,990',
-      'rating': 4.5,
-      'color': Color(0xFF1A2A4A),
-      'image': 'assets/image/laptop05.webp',
-    },
-    {
-      'id': 2,
-      'name': 'HP Pavilion 15',
-      'brand': 'HP',
-      'price': 56990,
-      'displayPrice': '₹56,990',
-      'rating': 4.2,
-      'color': Color(0xFF0D47A1),
-      'image': 'assets/image/laptop06.webp',
-    },
-    {
-      'id': 3,
-      'name': 'Lenovo IdeaPad 3',
-      'brand': 'Lenovo',
-      'price': 45990,
-      'displayPrice': '₹45,990',
-      'rating': 4.1,
-      'color': Color(0xFFB71C1C),
-      'image': 'assets/image/laptop07.webp',
-    },
-    {
-      'id': 4,
-      'name': 'Apple MacBook Air',
-      'brand': 'Apple',
-      'price': 109990,
-      'displayPrice': '₹1,09,990',
-      'rating': 4.8,
-      'color': Color(0xFF2C2C2C),
-      'image': 'assets/image/laptop08.webp',
-    },
-    {
-      'id': 5,
-      'name': 'Asus VivoBook 15',
-      'brand': 'Asus',
-      'price': 52990,
-      'displayPrice': '₹52,990',
-      'rating': 4.0,
-      'color': Color(0xFF1B5E20),
-      'image': 'assets/image/laptop01.webp',
-    },
-    {
-      'id': 6,
-      'name': 'HP Spectre x360',
-      'brand': 'HP',
-      'price': 139990,
-      'displayPrice': '₹1,39,990',
-      'rating': 4.7,
-      'image': 'assets/image/laptop02.webp',
-      'color': Color(0xFF0D47A1),
-    },
-  ];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   final List<String> _brands = ['All', 'Dell', 'HP', 'Lenovo', 'Apple', 'Asus'];
 
-  List<Map<String, dynamic>> get _filteredProducts {
-    List<Map<String, dynamic>> list = _selectedBrand == 'All'
-        ? List.from(_allProducts)
-        : _allProducts.where((p) => p['brand'] == _selectedBrand).toList();
+  final List<Map<String, dynamic>> _fallbackProducts = [
+    {
+      'id': 'dell-xps-13',
+      'name': 'Dell XPS 13',
+      'brand': 'Dell',
+      'price': 99990,
+      'discountPrice': 94990,
+      'rating': 4.5,
+      'image': 'assets/image/laptop05.webp',
+      'images': ['assets/image/laptop05.webp'],
+      'description':
+          'Dell XPS 13 is an exceptional ultrabook featuring Intel Core i7 12th Gen with 13.4-inch InfinityEdge display.',
+      'specs': {
+        'display': '13.4" FHD+ Display',
+        'cpu': 'Intel Core i7 12th Gen',
+        'ram': '16GB RAM | 512GB SSD',
+        'gpu': 'Intel Iris Xe Graphics',
+        'os': 'Windows 11 Home',
+      },
+    },
+    {
+      'id': 'hp-pavilion-15',
+      'name': 'HP Pavilion 15',
+      'brand': 'HP',
+      'price': 56990,
+      'discountPrice': 52990,
+      'rating': 4.2,
+      'image': 'assets/image/laptop06.webp',
+      'images': ['assets/image/laptop06.webp'],
+      'description':
+          'HP Pavilion 15 brings great performance with AMD Ryzen 5 processor and micro-edge anti-glare screen.',
+      'specs': {
+        'display': '15.6" FHD IPS Display',
+        'cpu': 'AMD Ryzen 5 5625U',
+        'ram': '16GB RAM | 512GB SSD',
+        'gpu': 'AMD Radeon Graphics',
+        'os': 'Windows 11 Home',
+      },
+    },
+    {
+      'id': 'apple-macbook-air-m2',
+      'name': 'MacBook Air M2',
+      'brand': 'Apple',
+      'price': 109990,
+      'discountPrice': 104990,
+      'rating': 4.8,
+      'image': 'assets/image/laptop08.webp',
+      'images': ['assets/image/laptop08.webp'],
+      'description':
+          'Thin, light and fast. Apple M2 chip brings incredible battery life and Liquid Retina display.',
+      'specs': {
+        'display': '13.6" Liquid Retina Display',
+        'cpu': 'Apple M2 Chip 8-Core',
+        'ram': '8GB Memory | 256GB SSD',
+        'gpu': '8-Core GPU',
+        'os': 'macOS Sequoia',
+      },
+    },
+    {
+      'id': 'lenovo-ideapad-3',
+      'name': 'Lenovo IdeaPad 3',
+      'brand': 'Lenovo',
+      'price': 45990,
+      'discountPrice': 42990,
+      'rating': 4.1,
+      'image': 'assets/image/laptop07.webp',
+      'images': ['assets/image/laptop07.webp'],
+      'description':
+          'Everyday computing made easy with Lenovo IdeaPad 3, featuring rapid charge and Dolby Audio.',
+      'specs': {
+        'display': '15.6" FHD Display',
+        'cpu': 'Intel Core i3 11th Gen',
+        'ram': '8GB RAM | 512GB SSD',
+        'gpu': 'Intel UHD Graphics',
+        'os': 'Windows 11 Home',
+      },
+    },
+    {
+      'id': 'asus-vivobook-15',
+      'name': 'Asus VivoBook 15',
+      'brand': 'Asus',
+      'price': 52990,
+      'discountPrice': 49990,
+      'rating': 4.3,
+      'image': 'assets/image/laptop01.webp',
+      'images': ['assets/image/laptop01.webp'],
+      'description':
+          'Asus VivoBook 15 delivers compact portable design with vibrant visuals and fingerprint security.',
+      'specs': {
+        'display': '15.6" NanoEdge FHD',
+        'cpu': 'Intel Core i5 11th Gen',
+        'ram': '16GB RAM | 512GB SSD',
+        'gpu': 'Intel Iris Xe Graphics',
+        'os': 'Windows 11 Home',
+      },
+    },
+    {
+      'id': 'hp-spectre-x360',
+      'name': 'HP Spectre x360',
+      'brand': 'HP',
+      'price': 139990,
+      'discountPrice': 132990,
+      'rating': 4.7,
+      'image': 'assets/image/laptop02.webp',
+      'images': ['assets/image/laptop02.webp'],
+      'description':
+          'Premium 2-in-1 convertible laptop with OLED touch display, stylus support, and gem-cut luxury build.',
+      'specs': {
+        'display': '13.5" 3K2K OLED Touch Screen',
+        'cpu': 'Intel Core i7 12th Gen Evo',
+        'ram': '16GB LPDDR4x | 1TB SSD',
+        'gpu': 'Intel Iris Xe Graphics',
+        'os': 'Windows 11 Pro',
+      },
+    },
+  ];
 
-    if (_sortBy == 'price-asc')
-      list.sort((a, b) => (a['price'] as int).compareTo(b['price'] as int));
-    if (_sortBy == 'price-desc')
-      list.sort((a, b) => (b['price'] as int).compareTo(a['price'] as int));
-    if (_sortBy == 'rating')
-      list.sort(
-        (a, b) => (b['rating'] as double).compareTo(a['rating'] as double),
+  @override
+  void initState() {
+    super.initState();
+    _selectedBrand = widget.initialBrand ?? 'All';
+    _searchQuery = widget.initialQuery ?? '';
+    _searchController.text = _searchQuery;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildProductImage(dynamic imageSource, {double height = 90}) {
+    String url = '';
+    if (imageSource is List && imageSource.isNotEmpty) {
+      url = imageSource.first.toString();
+    } else if (imageSource is String) {
+      url = imageSource;
+    }
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return Image.network(
+        url,
+        height: height,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            _fallbackImageIcon(height),
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                color: const Color(0xFF1565C0),
+              ),
+            ),
+          );
+        },
       );
+    } else if (url.startsWith('assets/')) {
+      return Image.asset(
+        url,
+        height: height,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            _fallbackImageIcon(height),
+      );
+    }
 
-    return list;
+    return _fallbackImageIcon(height);
+  }
+
+  Widget _fallbackImageIcon(double height) {
+    return Container(
+      height: height,
+      color: const Color(0xFFE8EEF5),
+      child: const Center(
+        child: Icon(Icons.laptop_mac, size: 40, color: Color(0xFF1565C0)),
+      ),
+    );
   }
 
   void _showSortBottomSheet() {
@@ -134,9 +254,8 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                   title: Text(
                     opt['label']!,
                     style: TextStyle(
-                      fontWeight: isSelected
-                          ? FontWeight.w700
-                          : FontWeight.w400,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w400,
                       color: isSelected ? const Color(0xFF1565C0) : null,
                     ),
                   ),
@@ -158,53 +277,164 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final products = _filteredProducts;
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildFilterBar(),
-          _buildBrandFilter(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '${products.length * 20}',
-                      style: const TextStyle(
-                        color: Color(0xFF1A1A2E),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('products').snapshots(),
+        builder: (context, snapshot) {
+          List<Map<String, dynamic>> productList = [];
+
+          if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+            for (var doc in snapshot.data!.docs) {
+              final data = doc.data() as Map<String, dynamic>;
+              data['id'] = doc.id;
+              if (!data.containsKey('brand') && data.containsKey('categoryId')) {
+                data['brand'] = data['categoryId'].toString().toUpperCase();
+              }
+              productList.add(data);
+            }
+          }
+
+          if (productList.isEmpty) {
+            productList = _fallbackProducts;
+          }
+
+          // Apply brand filter
+          List<Map<String, dynamic>> filtered = _selectedBrand == 'All'
+              ? List.from(productList)
+              : productList
+                  .where((p) =>
+                      (p['brand'] ?? '')
+                          .toString()
+                          .toLowerCase()
+                          .contains(_selectedBrand.toLowerCase()) ||
+                      (p['name'] ?? '')
+                          .toString()
+                          .toLowerCase()
+                          .contains(_selectedBrand.toLowerCase()))
+                  .toList();
+
+          // Apply search query filter
+          if (_searchQuery.isNotEmpty) {
+            filtered = filtered
+                .where((p) =>
+                    (p['name'] ?? '')
+                        .toString()
+                        .toLowerCase()
+                        .contains(_searchQuery.toLowerCase()) ||
+                    (p['brand'] ?? '')
+                        .toString()
+                        .toLowerCase()
+                        .contains(_searchQuery.toLowerCase()) ||
+                    (p['description'] ?? '')
+                        .toString()
+                        .toLowerCase()
+                        .contains(_searchQuery.toLowerCase()))
+                .toList();
+          }
+
+          // Apply sort
+          if (_sortBy == 'price-asc') {
+            filtered.sort((a, b) {
+              final num pA = a['price'] is num ? a['price'] : 0;
+              final num pB = b['price'] is num ? b['price'] : 0;
+              return pA.compareTo(pB);
+            });
+          } else if (_sortBy == 'price-desc') {
+            filtered.sort((a, b) {
+              final num pA = a['price'] is num ? a['price'] : 0;
+              final num pB = b['price'] is num ? b['price'] : 0;
+              return pB.compareTo(pA);
+            });
+          } else if (_sortBy == 'rating') {
+            filtered.sort((a, b) {
+              final num rA = a['rating'] is num ? a['rating'] : 0;
+              final num rB = b['rating'] is num ? b['rating'] : 0;
+              return rB.compareTo(rA);
+            });
+          }
+
+          return Column(
+            children: [
+              _buildHeader(),
+              _buildFilterBar(),
+              _buildBrandFilter(),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${filtered.length}',
+                          style: const TextStyle(
+                            color: Color(0xFF1A1A2E),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const TextSpan(
+                          text: ' Results Found',
+                          style: TextStyle(
+                            color: Color(0xFF666666),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
-                    const TextSpan(
-                      text: ' Results Found',
-                      style: TextStyle(color: Color(0xFF666666), fontSize: 13),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.75,
+              Expanded(
+                child: filtered.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.search_off,
+                                size: 64, color: Colors.grey),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'No matching laptops found',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _selectedBrand = 'All';
+                                  _searchQuery = '';
+                                  _searchController.clear();
+                                });
+                              },
+                              child: const Text('Reset Filters'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.74,
+                        ),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) =>
+                            _buildProductCard(filtered[index]),
+                      ),
               ),
-              itemCount: products.length,
-              itemBuilder: (context, index) =>
-                  _buildProductCard(products[index]),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
       bottomNavigationBar: _buildBottomNav(),
     );
@@ -227,53 +457,57 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                 ),
                 onPressed: () => Navigator.maybePop(context),
               ),
-              const Expanded(
-                child: Text(
-                  'Laptops',
-                  style: TextStyle(
+              Expanded(
+                child: Container(
+                  height: 42,
+                  decoration: BoxDecoration(
                     color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (val) {
+                      setState(() => _searchQuery = val.trim());
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search laptops, brands...',
+                      hintStyle: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFFAAAAAA),
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Color(0xFF1565C0),
+                        size: 20,
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
               IconButton(
-                icon: const Icon(Icons.search, color: Colors.white, size: 26),
-                onPressed: () {},
-              ),
-              Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.shopping_cart_outlined,
-                      color: Colors.white,
-                      size: 26,
-                    ),
-                    onPressed: () {},
-                  ),
-                  Positioned(
-                    right: 6,
-                    top: 6,
-                    child: Container(
-                      width: 16,
-                      height: 16,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF5252),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Text(
-                          '2',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                icon: const Icon(
+                  Icons.shopping_cart_outlined,
+                  color: Colors.white,
+                  size: 26,
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  );
+                },
               ),
             ],
           ),
@@ -283,57 +517,66 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
   }
 
   Widget _buildFilterBar() {
-    final chips = [
-      {'label': 'Filter', 'icon': Icons.tune},
-      {'label': 'Sort', 'icon': Icons.sort, 'action': 'sort'},
-      {'label': 'Price', 'icon': Icons.keyboard_arrow_down},
-      {'label': 'Brand', 'icon': Icons.keyboard_arrow_down},
-    ];
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
-        children: chips.map((chip) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: chip['action'] == 'sort' ? _showSortBottomSheet : null,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFFD0D5DD),
-                    width: 1.5,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      chip['label'] as String,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF333333),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      chip['icon'] as IconData,
-                      size: 16,
-                      color: const Color(0xFF666666),
-                    ),
-                  ],
+        children: [
+          GestureDetector(
+            onTap: _showSortBottomSheet,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3F0FF),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFF1565C0),
+                  width: 1.5,
                 ),
               ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'Sort By',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1565C0),
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  Icon(Icons.sort, size: 16, color: Color(0xFF1565C0)),
+                ],
+              ),
             ),
-          );
-        }).toList(),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFFD0D5DD),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Brand: $_selectedBrand',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -381,30 +624,39 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
   }
 
   Widget _buildProductCard(Map<String, dynamic> product) {
-    final id = product['id'] as int;
+    final String id = product['id']?.toString() ?? product['name'] ?? '';
     final isWishlisted = _wishlist.contains(id);
+
+    String priceStr = '';
+    if (product['price'] != null) {
+      priceStr = '₹${product['price']}';
+    } else if (product['displayPrice'] != null) {
+      priceStr = product['displayPrice'].toString();
+    } else {
+      priceStr = '₹69,990';
+    }
 
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ProductDetailScreen()),
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(product: product),
+          ),
         );
       },
-
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.07),
+              color: Colors.black.withOpacity(0.06),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
           ],
         ),
-
         child: Stack(
           children: [
             Column(
@@ -418,35 +670,29 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                       top: Radius.circular(14),
                     ),
                   ),
-
                   child: Center(
-                    child: Image.asset(
-                      product['image'],
-                      height: 90,
-                      fit: BoxFit.contain,
+                    child: _buildProductImage(
+                      product['images'] ?? product['image'],
+                      height: 85,
                     ),
                   ),
                 ),
-
                 Padding(
                   padding: const EdgeInsets.all(10),
-
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        product['brand'] as String,
+                        (product['brand'] ?? 'Laptop').toString(),
                         style: const TextStyle(
                           fontSize: 11,
                           color: Color(0xFF888888),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-
                       const SizedBox(height: 2),
-
                       Text(
-                        product['name'] as String,
+                        (product['name'] ?? 'Laptop').toString(),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -455,20 +701,16 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-
                       const SizedBox(height: 4),
-
                       Text(
-                        product['displayPrice'] as String,
+                        priceStr,
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF1565C0),
                         ),
                       ),
-
                       const SizedBox(height: 4),
-
                       Row(
                         children: [
                           const Icon(
@@ -476,11 +718,9 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                             color: Color(0xFFF59E0B),
                             size: 13,
                           ),
-
                           const SizedBox(width: 3),
-
                           Text(
-                            '${product['rating']}',
+                            '${product['rating'] ?? 4.5}',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -493,22 +733,28 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                 ),
               ],
             ),
-
             Positioned(
               top: 8,
               right: 8,
-
               child: GestureDetector(
                 onTap: () {
                   setState(() {
                     isWishlisted ? _wishlist.remove(id) : _wishlist.add(id);
                   });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isWishlisted
+                            ? 'Removed from Wishlist'
+                            : 'Added to Wishlist!',
+                      ),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
                 },
-
                 child: Container(
                   width: 30,
                   height: 30,
-
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
@@ -519,7 +765,6 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                       ),
                     ],
                   ),
-
                   child: Icon(
                     isWishlisted ? Icons.favorite : Icons.favorite_border,
                     size: 16,
@@ -556,7 +801,26 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
             children: List.generate(items.length, (i) {
               final active = _selectedNavIndex == i;
               return GestureDetector(
-                onTap: () => setState(() => _selectedNavIndex = i),
+                onTap: () {
+                  if (i == 0) {
+                    Navigator.pop(context);
+                  } else if (i == 2) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WishlistScreen()),
+                    );
+                  } else if (i == 3) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CartScreen()),
+                    );
+                  } else if (i == 4) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                    );
+                  }
+                },
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

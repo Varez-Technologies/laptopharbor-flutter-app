@@ -1,9 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:laptopharbor01/Screens/Login_Screen.dart';
+import 'package:laptopharbor01/Screens/orders_screen.dart';
+import 'package:laptopharbor01/Screens/wishlist_screen.dart';
+import 'package:laptopharbor01/Screens/Support_Screen.dart';
+import 'package:laptopharbor01/Screens/Cart_Screen.dart';
+import 'package:laptopharbor01/Screens/product_screen.dart';
+import 'package:laptopharbor01/Screens/home_screen.dart';
+import 'package:laptopharbor01/Screens/dashboard_screen.dart';
 
-
-
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String _role = 'User';
+  String _name = 'Valued Customer';
+  String _email = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  void _loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _name = user.displayName ?? (user.email != null ? user.email!.split('@')[0] : 'Valued Customer');
+        _email = user.email ?? '';
+      });
+
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists && mounted) {
+          final data = doc.data();
+          if (data != null) {
+            setState(() {
+              if (data['fullName'] != null && data['fullName'].toString().isNotEmpty) {
+                _name = data['fullName'];
+              }
+              if (data['role'] != null) {
+                _role = data['role'];
+              }
+            });
+          }
+        }
+      } catch (_) {}
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,30 +61,19 @@ class ProfileScreen extends StatelessWidget {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text(
-          'Profile',
+          'My Profile',
           style: TextStyle(
             fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             color: Colors.black87,
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        centerTitle: false,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Colors.black87),
-            onPressed: () {
-              // Settings functionality
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -44,56 +83,65 @@ class ProfileScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
             child: Row(
               children: [
-                // Profile Avatar
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade100,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.person,
-                    size: 40,
-                    color: Colors.blue.shade700,
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: const Color(0xFF1565C0),
+                  child: Text(
+                    _name.isNotEmpty ? _name.substring(0, 1).toUpperCase() : 'U',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
-                // User Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'John Doe',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.blue.shade700,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _name,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1A1A2E),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (_role == 'Admin') ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.deepPurple,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text(
+                                'ADMIN',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'john.doe@email.com',
+                        _email.isNotEmpty ? _email : 'Signed In User',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           color: Colors.grey.shade600,
                         ),
                       ),
                     ],
-                  ),
-                ),
-                // Edit Icon
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.edit_outlined,
-                    size: 20,
-                    color: Colors.grey.shade700,
                   ),
                 ),
               ],
@@ -105,54 +153,57 @@ class ProfileScreen extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
+                if (_role == 'Admin')
+                  _buildMenuItem(
+                    icon: Icons.admin_panel_settings,
+                    title: 'Admin Management Panel',
+                    iconColor: Colors.deepPurple,
+                    textColor: Colors.deepPurple,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AdminDashboardScreen(adminName: _name),
+                        ),
+                      );
+                    },
+                  ),
                 _buildMenuItem(
                   icon: Icons.shopping_bag_outlined,
-                  title: 'My Orders',
+                  title: 'My Orders & Tracking',
                   onTap: () {
-                    // Navigate to Orders
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const OrdersScreen()),
+                    );
                   },
                 ),
                 _buildMenuItem(
                   icon: Icons.favorite_border,
-                  title: 'Wishlist',
+                  title: 'My Wishlist',
                   onTap: () {
-                    // Navigate to Wishlist
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WishlistScreen()),
+                    );
                   },
                 ),
                 _buildMenuItem(
-                  icon: Icons.location_on_outlined,
-                  title: 'Address Book',
+                  icon: Icons.support_agent_outlined,
+                  title: 'Help Center & Support',
                   onTap: () {
-                    // Navigate to Address Book
-                  },
-                ),
-                _buildMenuItem(
-                  icon: Icons.payment_outlined,
-                  title: 'Payment Methods',
-                  onTap: () {
-                    // Navigate to Payment Methods
-                  },
-                ),
-                _buildMenuItem(
-                  icon: Icons.settings_outlined,
-                  title: 'Account Settings',
-                  onTap: () {
-                    // Navigate to Account Settings
-                  },
-                ),
-                _buildMenuItem(
-                  icon: Icons.lock_outline,
-                  title: 'Change Password',
-                  onTap: () {
-                    // Navigate to Change Password
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SupportFeedbackScreen()),
+                    );
                   },
                 ),
                 const Divider(height: 20, thickness: 1),
                 _buildMenuItem(
                   icon: Icons.logout,
                   title: 'Logout',
-                  textColor: Colors.red.shade400,
-                  iconColor: Colors.red.shade400,
+                  textColor: Colors.red.shade600,
+                  iconColor: Colors.red.shade600,
                   onTap: () {
                     _showLogoutDialog(context);
                   },
@@ -161,7 +212,6 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
           ),
-          // Bottom Navigation Bar
           _buildBottomNavBar(),
         ],
       ),
@@ -178,14 +228,14 @@ class ProfileScreen extends StatelessWidget {
     return ListTile(
       leading: Icon(
         icon,
-        color: iconColor ?? Colors.grey.shade700,
+        color: iconColor ?? const Color(0xFF1565C0),
         size: 24,
       ),
       title: Text(
         title,
         style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
           color: textColor ?? Colors.black87,
         ),
       ),
@@ -213,11 +263,9 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blue.shade700,
+        selectedItemColor: const Color(0xFF1565C0),
         unselectedItemColor: Colors.grey.shade600,
-        selectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-        unselectedLabelStyle: const TextStyle(fontSize: 12),
-        currentIndex: 4, // Profile is selected
+        currentIndex: 4,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.category_outlined), label: 'Categories'),
@@ -226,7 +274,27 @@ class ProfileScreen extends StatelessWidget {
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
         onTap: (index) {
-          // Handle navigation
+          if (index == 0) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            );
+          } else if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProductListingScreen()),
+            );
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WishlistScreen()),
+            );
+          } else if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CartScreen()),
+            );
+          }
         },
       ),
     );
@@ -235,25 +303,33 @@ class ProfileScreen extends StatelessWidget {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        content: const Text('Are you sure you want to logout from LaptopHarbor?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Perform logout
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Logged out successfully')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await FirebaseAuth.instance.signOut();
+              if (!mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
               );
             },
             child: const Text(
               'Logout',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: Colors.white),
             ),
           ),
         ],
