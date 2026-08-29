@@ -10,6 +10,7 @@ import 'package:laptopharbor01/Screens/wishlist_screen.dart';
 import 'package:laptopharbor01/Screens/orders_screen.dart';
 import 'package:laptopharbor01/Screens/Login_Screen.dart';
 import 'package:laptopharbor01/services/cart_service.dart';
+import 'package:laptopharbor01/services/wishlist_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,7 +22,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedCategory = 0;
   int _selectedNavIndex = 0;
-  final Set<String> _wishlist = {};
   final TextEditingController _searchController = TextEditingController();
 
   final List<Map<String, dynamic>> _categories = [
@@ -33,8 +33,28 @@ class _HomeScreenState extends State<HomeScreen> {
     {'name': 'Asus', 'icon': Icons.computer},
   ];
 
-  // Fallback products if Firestore is slow or offline
   final List<Map<String, dynamic>> _fallbackProducts = [
+    {
+      'id': 'apple-macbook-air-m2',
+      'name': 'MacBook Air M2',
+      'brand': 'Apple',
+      'price': 109990,
+      'discountPrice': 104990,
+      'rating': 4.8,
+      'badge': 'Featured',
+      'image': 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8',
+      'images': ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8'],
+      'description':
+          'Supercharged by Apple M2 chip. Incredible thin fanless design with up to 18 hours battery life.',
+      'specs': {
+        'display': '13.6" Liquid Retina Display True Tone',
+        'cpu': 'Apple M2 8-Core CPU',
+        'ram': '8GB Unified Memory | 256GB SSD',
+        'gpu': '8-Core GPU & 16-Core Neural Engine',
+        'os': 'macOS Sequoia',
+        'battery': 'Up to 18 Hours Battery Life',
+      },
+    },
     {
       'id': 'dell-xps-13',
       'name': 'Dell XPS 13',
@@ -75,27 +95,6 @@ class _HomeScreenState extends State<HomeScreen> {
         'gpu': 'AMD Radeon Graphics',
         'os': 'Windows 11 Home',
         'battery': 'Up to 8.5 Hours Battery Life',
-      },
-    },
-    {
-      'id': 'apple-macbook-air-m2',
-      'name': 'MacBook Air M2',
-      'brand': 'Apple',
-      'price': 109990,
-      'discountPrice': 104990,
-      'rating': 4.8,
-      'badge': 'Featured',
-      'image': 'assets/image/laptop08.webp',
-      'images': ['assets/image/laptop08.webp', 'assets/image/laptop04.webp'],
-      'description':
-          'Supercharged by Apple M2 chip. Incredible thin fanless design with up to 18 hours battery life.',
-      'specs': {
-        'display': '13.6" Liquid Retina Display True Tone',
-        'cpu': 'Apple M2 8-Core CPU',
-        'ram': '8GB Unified Memory | 256GB SSD',
-        'gpu': '8-Core GPU & 16-Core Neural Engine',
-        'os': 'macOS Sequoia',
-        'battery': 'Up to 18 Hours Battery Life',
       },
     },
     {
@@ -148,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Widget _buildProductImage(dynamic imageSource, {double height = 110}) {
+  Widget _buildProductImage(dynamic imageSource, {double height = 120}) {
     String url = '';
     if (imageSource is List && imageSource.isNotEmpty) {
       url = imageSource.first.toString();
@@ -161,8 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
         url,
         height: height,
         fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) =>
-            _fallbackImageIcon(height),
+        errorBuilder: (_, __, ___) => _fallbackImageIcon(height),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Center(
@@ -171,10 +169,6 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
-                    : null,
                 color: const Color(0xFF1565C0),
               ),
             ),
@@ -186,8 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
         url,
         height: height,
         fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) =>
-            _fallbackImageIcon(height),
+        errorBuilder: (_, __, ___) => _fallbackImageIcon(height),
       );
     }
 
@@ -199,11 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
       height: height,
       color: const Color(0xFFE8EEF5),
       child: const Center(
-        child: Icon(
-          Icons.laptop_mac,
-          size: 44,
-          color: Color(0xFF1565C0),
-        ),
+        child: Icon(Icons.laptop_mac, size: 44, color: Color(0xFF1565C0)),
       ),
     );
   }
@@ -232,14 +221,19 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBanner(),
-                    _buildCategories(),
-                    _buildFirestoreFeaturedProducts(),
-                    const SizedBox(height: 24),
-                  ],
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1200),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildBanner(),
+                        _buildCategories(),
+                        _buildFirestoreFeaturedProducts(),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -372,131 +366,135 @@ class _HomeScreenState extends State<HomeScreen> {
       color: const Color(0xFF1565C0),
       child: SafeArea(
         bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            children: [
-              Row(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Column(
                 children: [
-                  Builder(
-                    builder: (btnContext) => IconButton(
-                      icon:
-                          const Icon(Icons.menu, color: Colors.white, size: 26),
-                      onPressed: () => Scaffold.of(btnContext).openDrawer(),
-                    ),
+                  Row(
+                    children: [
+                      Builder(
+                        builder: (btnContext) => IconButton(
+                          icon: const Icon(Icons.menu, color: Colors.white, size: 26),
+                          onPressed: () => Scaffold.of(btnContext).openDrawer(),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'LaptopHarbor',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.notifications_outlined,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SupportFeedbackScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      ValueListenableBuilder<int>(
+                        valueListenable: CartManager.instance.cartCountNotifier,
+                        builder: (context, count, child) {
+                          return Stack(
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.shopping_cart_outlined,
+                                  color: Colors.white,
+                                  size: 26,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => const CartScreen()),
+                                  );
+                                },
+                              ),
+                              if (count > 0)
+                                Positioned(
+                                  right: 6,
+                                  top: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFFF5252),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 16,
+                                      minHeight: 16,
+                                    ),
+                                    child: Text(
+                                      '$count',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 4),
-                  const Text(
-                    'LaptopHarbor',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: Colors.white,
-                      size: 26,
-                    ),
-                    onPressed: () {
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const SupportFeedbackScreen(),
+                          builder: (_) => const ProductListingScreen(),
                         ),
                       );
                     },
-                  ),
-                  ValueListenableBuilder<int>(
-                    valueListenable: CartManager.instance.cartCountNotifier,
-                    builder: (context, count, child) {
-                      return Stack(
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.shopping_cart_outlined,
-                              color: Colors.white,
-                              size: 26,
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const CartScreen()),
-                              );
-                            },
-                          ),
-                          if (count > 0)
-                            Positioned(
-                              right: 6,
-                              top: 6,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFFF5252),
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 16,
-                                  minHeight: 16,
-                                ),
-                                child: Text(
-                                  '$count',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                    child: Container(
+                      height: 46,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.search, color: Color(0xFFAAAAAA), size: 20),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Search for laptops, brands...',
+                              style: TextStyle(
+                                color: Color(0xFFAAAAAA),
+                                fontSize: 14,
                               ),
                             ),
+                          ),
+                          Icon(Icons.tune, color: Color(0xFFAAAAAA), size: 20),
                         ],
-                      );
-                    },
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ProductListingScreen(),
-                    ),
-                  );
-                },
-                child: Container(
-                  height: 46,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.search, color: Color(0xFFAAAAAA), size: 20),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Search for laptops, brands...',
-                          style: TextStyle(
-                            color: Color(0xFFAAAAAA),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      Icon(Icons.tune, color: Color(0xFFAAAAAA), size: 20),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -702,8 +700,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildFirestoreFeaturedProducts() {
     final selectedBrand = _categories[_selectedCategory]['name'] as String;
     final screenWidth = MediaQuery.of(context).size.width;
-    final crossAxisCount = screenWidth > 1200 ? 4 : (screenWidth > 768 ? 3 : 2);
-    final childAspectRatio = screenWidth > 768 ? 0.85 : 0.78;
+    final crossAxisCount = screenWidth > 950 ? 4 : (screenWidth > 600 ? 3 : 2);
+    final childAspectRatio = screenWidth > 600 ? 0.76 : 0.72;
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('products').snapshots(),
@@ -721,12 +719,10 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
 
-        // If firestore is empty or loading failed, use fallback products
         if (productList.isEmpty) {
           productList = _fallbackProducts;
         }
 
-        // Filter by selected category
         List<Map<String, dynamic>> displayed = productList;
         if (selectedBrand != 'All') {
           displayed = productList
@@ -799,15 +795,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 14,
+                    mainAxisSpacing: 14,
                     childAspectRatio: childAspectRatio,
                   ),
                   itemCount: displayed.length,
                   itemBuilder: (context, index) {
                     final product = displayed[index];
                     final String id = product['id']?.toString() ?? '$index';
-                    final bool isWishlisted = _wishlist.contains(id);
+                    final String name = product['name']?.toString() ?? 'Laptop';
+                    final bool isWishlisted = WishlistManager.instance.isInWishlist(id, name);
 
                     String priceStr = '';
                     if (product['price'] != null) {
@@ -831,12 +828,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE8EAF0), width: 1),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.06),
+                              color: Colors.black.withOpacity(0.04),
                               blurRadius: 10,
-                              offset: const Offset(0, 2),
+                              offset: const Offset(0, 3),
                             ),
                           ],
                         ),
@@ -846,46 +844,57 @@ class _HomeScreenState extends State<HomeScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Container(
-                                  height: 130,
+                                  height: 140,
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(8),
                                   decoration: const BoxDecoration(
-                                    color: Color(0xFFF0F4F8),
+                                    color: Color(0xFFF4F7FA),
                                     borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(14),
+                                      top: Radius.circular(15),
                                     ),
                                   ),
                                   child: Center(
                                     child: _buildProductImage(
                                       product['images'] ?? product['image'],
-                                      height: 100,
+                                      height: 120,
                                     ),
                                   ),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.all(10),
+                                  padding: const EdgeInsets.all(12),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        product['name']?.toString() ?? 'Laptop',
+                                        (product['brand'] ?? 'Laptop').toString().toUpperCase(),
                                         style: const TextStyle(
-                                          fontSize: 13,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF1565C0),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        name,
+                                        style: const TextStyle(
+                                          fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: Color(0xFF1A1A2E),
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 6),
                                       Text(
                                         priceStr,
                                         style: const TextStyle(
-                                          fontSize: 14,
+                                          fontSize: 15,
                                           fontWeight: FontWeight.w800,
                                           color: Color(0xFF1565C0),
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 6),
                                       Row(
                                         children: [
                                           const Icon(
@@ -914,12 +923,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 left: 8,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
+                                    horizontal: 8,
                                     vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF1565C0),
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     product['badge'].toString(),
@@ -933,15 +942,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                             Positioned(
-                              top: 6,
-                              right: 6,
+                              top: 8,
+                              right: 8,
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    isWishlisted
-                                        ? _wishlist.remove(id)
-                                        : _wishlist.add(id);
+                                    WishlistManager.instance.toggleWishlist(product);
                                   });
+                                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
@@ -954,8 +962,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   );
                                 },
                                 child: Container(
-                                  width: 30,
-                                  height: 30,
+                                  width: 32,
+                                  height: 32,
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     shape: BoxShape.circle,
@@ -970,7 +978,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     isWishlisted
                                         ? Icons.favorite
                                         : Icons.favorite_border,
-                                    size: 16,
+                                    size: 17,
                                     color:
                                         isWishlisted ? Colors.red : Colors.grey,
                                   ),

@@ -4,6 +4,8 @@ import 'package:laptopharbor01/Screens/detail_screen.dart';
 import 'package:laptopharbor01/Screens/Cart_Screen.dart';
 import 'package:laptopharbor01/Screens/wishlist_screen.dart';
 import 'package:laptopharbor01/Screens/Profile_Screen.dart';
+import 'package:laptopharbor01/services/wishlist_service.dart';
+import 'package:laptopharbor01/services/cart_service.dart';
 
 class ProductListingScreen extends StatefulWidget {
   final String? initialBrand;
@@ -20,7 +22,6 @@ class ProductListingScreen extends StatefulWidget {
 }
 
 class _ProductListingScreenState extends State<ProductListingScreen> {
-  final Set<String> _wishlist = {};
   late String _selectedBrand;
   String _sortBy = 'default';
   int _selectedNavIndex = 1;
@@ -30,6 +31,25 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
   final List<String> _brands = ['All', 'Dell', 'HP', 'Lenovo', 'Apple', 'Asus'];
 
   final List<Map<String, dynamic>> _fallbackProducts = [
+    {
+      'id': 'apple-macbook-air-m2',
+      'name': 'MacBook Air M2',
+      'brand': 'Apple',
+      'price': 109990,
+      'discountPrice': 104990,
+      'rating': 4.8,
+      'image': 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8',
+      'images': ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8'],
+      'description':
+          'Thin, light and fast. Apple M2 chip brings incredible battery life and Liquid Retina display.',
+      'specs': {
+        'display': '13.6" Liquid Retina Display',
+        'cpu': 'Apple M2 Chip 8-Core',
+        'ram': '8GB Memory | 256GB SSD',
+        'gpu': '8-Core GPU',
+        'os': 'macOS Sequoia',
+      },
+    },
     {
       'id': 'dell-xps-13',
       'name': 'Dell XPS 13',
@@ -66,25 +86,6 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
         'ram': '16GB RAM | 512GB SSD',
         'gpu': 'AMD Radeon Graphics',
         'os': 'Windows 11 Home',
-      },
-    },
-    {
-      'id': 'apple-macbook-air-m2',
-      'name': 'MacBook Air M2',
-      'brand': 'Apple',
-      'price': 109990,
-      'discountPrice': 104990,
-      'rating': 4.8,
-      'image': 'assets/image/laptop08.webp',
-      'images': ['assets/image/laptop08.webp'],
-      'description':
-          'Thin, light and fast. Apple M2 chip brings incredible battery life and Liquid Retina display.',
-      'specs': {
-        'display': '13.6" Liquid Retina Display',
-        'cpu': 'Apple M2 Chip 8-Core',
-        'ram': '8GB Memory | 256GB SSD',
-        'gpu': '8-Core GPU',
-        'os': 'macOS Sequoia',
       },
     },
     {
@@ -160,7 +161,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     super.dispose();
   }
 
-  Widget _buildProductImage(dynamic imageSource, {double height = 90}) {
+  Widget _buildProductImage(dynamic imageSource, {double height = 120}) {
     String url = '';
     if (imageSource is List && imageSource.isNotEmpty) {
       url = imageSource.first.toString();
@@ -173,8 +174,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
         url,
         height: height,
         fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) =>
-            _fallbackImageIcon(height),
+        errorBuilder: (_, __, ___) => _fallbackImageIcon(height),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Center(
@@ -183,10 +183,6 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
               height: 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
-                    : null,
                 color: const Color(0xFF1565C0),
               ),
             ),
@@ -198,8 +194,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
         url,
         height: height,
         fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) =>
-            _fallbackImageIcon(height),
+        errorBuilder: (_, __, ___) => _fallbackImageIcon(height),
       );
     }
 
@@ -211,7 +206,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       height: height,
       color: const Color(0xFFE8EEF5),
       child: const Center(
-        child: Icon(Icons.laptop_mac, size: 40, color: Color(0xFF1565C0)),
+        child: Icon(Icons.laptop_mac, size: 44, color: Color(0xFF1565C0)),
       ),
     );
   }
@@ -277,6 +272,10 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final crossAxisCount = screenWidth > 950 ? 4 : (screenWidth > 600 ? 3 : 2);
+    final childAspectRatio = screenWidth > 600 ? 0.76 : 0.72;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: StreamBuilder<QuerySnapshot>(
@@ -299,7 +298,6 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
             productList = _fallbackProducts;
           }
 
-          // Apply brand filter
           List<Map<String, dynamic>> filtered = _selectedBrand == 'All'
               ? List.from(productList)
               : productList
@@ -314,7 +312,6 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                           .contains(_selectedBrand.toLowerCase()))
                   .toList();
 
-          // Apply search query filter
           if (_searchQuery.isNotEmpty) {
             filtered = filtered
                 .where((p) =>
@@ -333,7 +330,6 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                 .toList();
           }
 
-          // Apply sort
           if (_sortBy == 'price-asc') {
             filtered.sort((a, b) {
               final num pA = a['price'] is num ? a['price'] : 0;
@@ -359,30 +355,34 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
               _buildHeader(),
               _buildFilterBar(),
               _buildBrandFilter(),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${filtered.length}',
-                          style: const TextStyle(
-                            color: Color(0xFF1A1A2E),
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                          ),
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '${filtered.length}',
+                              style: const TextStyle(
+                                color: Color(0xFF1A1A2E),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const TextSpan(
+                              text: ' Results Found',
+                              style: TextStyle(
+                                color: Color(0xFF666666),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
-                        const TextSpan(
-                          text: ' Results Found',
-                          style: TextStyle(
-                            color: Color(0xFF666666),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -393,8 +393,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.search_off,
-                                size: 64, color: Colors.grey),
+                            const Icon(Icons.search_off, size: 64, color: Colors.grey),
                             const SizedBox(height: 12),
                             const Text(
                               'No matching laptops found',
@@ -418,18 +417,22 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                           ],
                         ),
                       )
-                    : GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.74,
+                    : Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1200),
+                          child: GridView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              crossAxisSpacing: 14,
+                              mainAxisSpacing: 14,
+                              childAspectRatio: childAspectRatio,
+                            ),
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) =>
+                                _buildProductCard(filtered[index]),
+                          ),
                         ),
-                        itemCount: filtered.length,
-                        itemBuilder: (context, index) =>
-                            _buildProductCard(filtered[index]),
                       ),
               ),
             ],
@@ -445,71 +448,110 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       color: const Color(0xFF1565C0),
       child: SafeArea(
         bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 4, 16, 12),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                onPressed: () => Navigator.maybePop(context),
-              ),
-              Expanded(
-                child: Container(
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 16, 12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    onPressed: () => Navigator.maybePop(context),
                   ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (val) {
-                      setState(() => _searchQuery = val.trim());
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search laptops, brands...',
-                      hintStyle: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFFAAAAAA),
+                  Expanded(
+                    child: Container(
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                      prefixIcon: const Icon(
-                        Icons.search,
-                        color: Color(0xFF1565C0),
-                        size: 20,
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (val) {
+                          setState(() => _searchQuery = val.trim());
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Search laptops, brands...',
+                          hintStyle: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFFAAAAAA),
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Color(0xFF1565C0),
+                            size: 20,
+                          ),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
                       ),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _searchQuery = '');
-                              },
-                            )
-                          : null,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  ValueListenableBuilder<int>(
+                    valueListenable: CartManager.instance.cartCountNotifier,
+                    builder: (context, count, child) {
+                      return Stack(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.shopping_cart_outlined,
+                              color: Colors.white,
+                              size: 26,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const CartScreen()),
+                              );
+                            },
+                          ),
+                          if (count > 0)
+                            Positioned(
+                              right: 6,
+                              top: 6,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFF5252),
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  '$count',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(
-                  Icons.shopping_cart_outlined,
-                  color: Colors.white,
-                  size: 26,
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CartScreen()),
-                  );
-                },
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -520,63 +562,68 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: _showSortBottomSheet,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE3F0FF),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF1565C0),
-                  width: 1.5,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Text(
-                    'Sort By',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1565C0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: _showSortBottomSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F0FF),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF1565C0),
+                      width: 1.5,
                     ),
                   ),
-                  SizedBox(width: 4),
-                  Icon(Icons.sort, size: 16, color: Color(0xFF1565C0)),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: const Color(0xFFD0D5DD),
-                width: 1.5,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Brand: $_selectedBrand',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF333333),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Text(
+                        'Sort By',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.sort, size: 16, color: Color(0xFF1565C0)),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFFD0D5DD),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Brand: $_selectedBrand',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -585,47 +632,53 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     return Container(
       height: 44,
       color: const Color(0xFFF8F9FA),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        itemCount: _brands.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final brand = _brands[index];
-          final isSelected = _selectedBrand == brand;
-          return GestureDetector(
-            onTap: () => setState(() => _selectedBrand = brand),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF1565C0) : Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFF1565C0)
-                      : const Color(0xFFD0D5DD),
-                  width: 1.5,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            itemCount: _brands.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final brand = _brands[index];
+              final isSelected = _selectedBrand == brand;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedBrand = brand),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF1565C0) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF1565C0)
+                          : const Color(0xFFD0D5DD),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    brand,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? Colors.white : const Color(0xFF555555),
+                    ),
+                  ),
                 ),
-              ),
-              child: Text(
-                brand,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : const Color(0xFF555555),
-                ),
-              ),
-            ),
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildProductCard(Map<String, dynamic> product) {
     final String id = product['id']?.toString() ?? product['name'] ?? '';
-    final isWishlisted = _wishlist.contains(id);
+    final String name = product['name']?.toString() ?? 'Laptop';
+    final isWishlisted = WishlistManager.instance.isInWishlist(id, name);
 
     String priceStr = '';
     if (product['price'] != null) {
@@ -648,12 +701,13 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE8EAF0), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 10,
-              offset: const Offset(0, 2),
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -663,54 +717,56 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  height: 115,
+                  height: 140,
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
                   decoration: const BoxDecoration(
-                    color: Color(0xFFF0F4F8),
+                    color: Color(0xFFF4F7FA),
                     borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(14),
+                      top: Radius.circular(15),
                     ),
                   ),
                   child: Center(
                     child: _buildProductImage(
                       product['images'] ?? product['image'],
-                      height: 85,
+                      height: 120,
                     ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        (product['brand'] ?? 'Laptop').toString(),
+                        (product['brand'] ?? 'Laptop').toString().toUpperCase(),
                         style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF888888),
-                          fontWeight: FontWeight.w500,
+                          fontSize: 10,
+                          color: Color(0xFF1565C0),
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
-                        (product['name'] ?? 'Laptop').toString(),
+                        name,
                         style: const TextStyle(
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1A1A2E),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         priceStr,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF1565C0),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Row(
                         children: [
                           const Icon(
@@ -739,8 +795,9 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
               child: GestureDetector(
                 onTap: () {
                   setState(() {
-                    isWishlisted ? _wishlist.remove(id) : _wishlist.add(id);
+                    WishlistManager.instance.toggleWishlist(product);
                   });
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -753,8 +810,8 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                   );
                 },
                 child: Container(
-                  width: 30,
-                  height: 30,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
@@ -767,7 +824,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                   ),
                   child: Icon(
                     isWishlisted ? Icons.favorite : Icons.favorite_border,
-                    size: 16,
+                    size: 17,
                     color: isWishlisted ? Colors.red : Colors.grey,
                   ),
                 ),
