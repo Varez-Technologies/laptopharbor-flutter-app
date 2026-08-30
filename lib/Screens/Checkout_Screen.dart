@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:laptopharbor01/services/cart_service.dart';
+import 'package:laptopharbor01/services/order_service.dart';
 import 'package:laptopharbor01/Screens/OrderTracking_Screen.dart';
 import 'package:laptopharbor01/Screens/home_screen.dart';
 
@@ -140,9 +141,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _processPlaceOrder() {
-    // Generate Order ID and clear cart
-    final orderId = "LH${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}";
-    
+    final subtotal = cartManager.subtotal;
+    final shippingCharges = cartManager.shippingCharges;
+    final taxAmount = cartManager.taxAmount;
+    final totalAmount = cartManager.totalAmount;
+
+    // Create real order item
+    final newOrder = OrderManager.instance.createOrder(
+      cartItems: cartManager.items,
+      paymentMethod: selectedPaymentMethod,
+      subtotal: subtotal,
+      shippingCharges: shippingCharges,
+      taxAmount: taxAmount,
+      totalAmount: totalAmount,
+    );
+
     // Clear cart immediately
     cartManager.clearCart();
 
@@ -176,7 +189,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Order ID: #$orderId',
+              'Order ID: ${newOrder.id}',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -198,7 +211,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Navigator.pop(ctx);
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => const OrderTrackingScreen()),
+                    MaterialPageRoute(builder: (_) => OrderTrackingScreen(order: newOrder)),
                   );
                 },
                 icon: const Icon(Icons.local_shipping, size: 18),

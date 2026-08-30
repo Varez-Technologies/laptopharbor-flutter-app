@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:laptopharbor01/services/cart_service.dart';
 import 'package:laptopharbor01/services/wishlist_service.dart';
 import 'package:laptopharbor01/Screens/Cart_Screen.dart';
+import 'package:laptopharbor01/widgets/app_toast.dart';
 
 class WishlistScreen extends StatefulWidget {
   const WishlistScreen({super.key});
@@ -171,24 +172,16 @@ class _WishlistScreenState extends State<WishlistScreen> {
                         ElevatedButton(
                           onPressed: () {
                             CartManager.instance.addItem(item);
-                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('${item['name']} added to cart!'),
-                                backgroundColor: const Color(0xFF2E7D32),
-                                duration: const Duration(seconds: 2),
-                                action: SnackBarAction(
-                                  label: 'VIEW CART',
-                                  textColor: Colors.white,
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => const CartScreen()),
-                                    );
-                                  },
-                                ),
-                              ),
+                            AppToast.show(
+                              context,
+                              '${item['name']} added to cart!',
+                              actionLabel: 'VIEW CART',
+                              onAction: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const CartScreen()),
+                                );
+                              },
                             );
                           },
                           style: ElevatedButton.styleFrom(

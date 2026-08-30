@@ -11,6 +11,7 @@ import 'package:laptopharbor01/Screens/orders_screen.dart';
 import 'package:laptopharbor01/Screens/Login_Screen.dart';
 import 'package:laptopharbor01/services/cart_service.dart';
 import 'package:laptopharbor01/services/wishlist_service.dart';
+import 'package:laptopharbor01/widgets/app_toast.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -949,16 +950,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   setState(() {
                                     WishlistManager.instance.toggleWishlist(product);
                                   });
-                                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        isWishlisted
-                                            ? 'Removed from Wishlist'
-                                            : 'Added to Wishlist!',
-                                      ),
-                                      duration: const Duration(seconds: 1),
-                                    ),
+                                  AppToast.show(
+                                    context,
+                                    isWishlisted
+                                        ? 'Removed from Wishlist'
+                                        : 'Added to Wishlist!',
                                   );
                                 },
                                 child: Container(

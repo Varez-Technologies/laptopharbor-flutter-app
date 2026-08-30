@@ -1,14 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:laptopharbor01/services/order_service.dart';
 import 'package:laptopharbor01/Screens/OrderTracking_Screen.dart';
 
 class OrderDetailsScreen extends StatelessWidget {
-  const OrderDetailsScreen({super.key});
+  final OrderItem? order;
+
+  const OrderDetailsScreen({super.key, this.order});
+
+  Widget _buildProductImage(String imageSource) {
+    if (imageSource.startsWith('http://') || imageSource.startsWith('https://')) {
+      return Image.network(
+        imageSource,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Icon(Icons.laptop_mac, size: 36, color: Color(0xFF1565C0)),
+      );
+    } else if (imageSource.startsWith('assets/')) {
+      return Image.asset(
+        imageSource,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Icon(Icons.laptop_mac, size: 36, color: Color(0xFF1565C0)),
+      );
+    }
+    return const Icon(Icons.laptop_mac, size: 36, color: Color(0xFF1565C0));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final o = order ?? OrderManager.instance.orders.first;
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
-
       appBar: AppBar(
         elevation: 0,
         backgroundColor: const Color(0xff2D0C8B),
@@ -16,280 +37,247 @@ class OrderDetailsScreen extends StatelessWidget {
           "Order Details",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-          ),
-        ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Top Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Color(0xff2D0C8B),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(28),
-                  bottomRight: Radius.circular(28),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Column(
+              children: [
+                // Top Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: const BoxDecoration(
+                    color: Color(0xff2D0C8B),
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(28),
+                      bottomRight: Radius.circular(28),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 75,
+                        width: 75,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.shopping_bag_outlined,
+                          size: 38,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        o.id,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          o.status,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    height: 90,
-                    width: 90,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.shopping_bag_outlined,
-                      size: 45,
-                      color: Colors.white,
-                    ),
-                  ),
 
-                  const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                  const Text(
-                    "#LH123456",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      "Delivered",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Column(
-                children: [
-                  // Customer Info
-                  buildSectionCard(
-                    title: "Customer Information",
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
                     children: [
-                      buildTile(
-                        Icons.person_outline,
-                        "Customer Name",
-                        "John Doe",
+                      // Customer Info
+                      buildSectionCard(
+                        title: "Customer & Shipping Information",
+                        children: [
+                          buildTile(Icons.person_outline, "Customer Name", o.customerName),
+                          buildTile(Icons.email_outlined, "Email Address", o.customerEmail),
+                          buildTile(Icons.phone_outlined, "Phone Number", o.customerPhone),
+                          buildTile(Icons.location_on_outlined, "Delivery Address", o.shippingAddress),
+                        ],
                       ),
-                      buildTile(
-                        Icons.email_outlined,
-                        "Email",
-                        "john@example.com",
-                      ),
-                      buildTile(
-                        Icons.phone_outlined,
-                        "Phone",
-                        "+92 300 1234567",
-                      ),
-                    ],
-                  ),
 
-                  const SizedBox(height: 18),
+                      const SizedBox(height: 16),
 
-                  // Order Info
-                  buildSectionCard(
-                    title: "Order Information",
-                    children: [
-                      buildTile(
-                        Icons.calendar_month_outlined,
-                        "Order Date",
-                        "26 May 2026",
+                      // Order Info
+                      buildSectionCard(
+                        title: "Order & Payment Info",
+                        children: [
+                          buildTile(Icons.calendar_month_outlined, "Order Date", o.date),
+                          buildTile(Icons.payment_outlined, "Payment Method", o.paymentMethod),
+                          buildTile(Icons.local_shipping_outlined, "Delivery Type", "Express Doorstep Delivery"),
+                        ],
                       ),
-                      buildTile(
-                        Icons.payment_outlined,
-                        "Payment Status",
-                        "Paid",
-                      ),
-                      buildTile(
-                        Icons.local_shipping_outlined,
-                        "Shipping",
-                        "Express Delivery",
-                      ),
-                    ],
-                  ),
 
-                  const SizedBox(height: 18),
+                      const SizedBox(height: 16),
 
-                  // Product Card
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          height: 90,
-                          width: 90,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: const Icon(
-                            Icons.laptop_mac,
-                            size: 45,
-                            color: Colors.deepPurple,
-                          ),
+                      // Products Section
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.grey.shade200),
                         ),
-
-                        const SizedBox(width: 16),
-
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "MacBook Pro M3",
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
-                              const SizedBox(height: 6),
-
-                              Text(
-                                "16GB RAM • 512GB SSD",
-                                style: TextStyle(color: Colors.grey.shade600),
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              const Text(
-                                "₹1,25,990",
-                                style: TextStyle(
-                                  color: Colors.deepPurple,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Total Card
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: Column(
-                      children: [
-                        buildPriceRow("Subtotal", "₹1,20,000"),
-                        const SizedBox(height: 10),
-
-                        buildPriceRow("Shipping", "₹990"),
-                        const SizedBox(height: 10),
-
-                        buildPriceRow("Tax", "₹5,000"),
-
-                        const Divider(height: 30),
-
-                        buildPriceRow("Total", "₹1,25,990", isBold: true),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.download),
-                          label: const Text("Invoice"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.deepPurple,
-                            elevation: 0,
-                            minimumSize: const Size(double.infinity, 55),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Purchased Items",
+                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                             ),
-                          ),
+                            const SizedBox(height: 14),
+                            ...o.items.map((item) => Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8F9FA),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    height: 65,
+                                    width: 65,
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Center(
+                                      child: _buildProductImage(item.image),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.name,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "Quantity: ${item.quantity}",
+                                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "₹${item.price.toStringAsFixed(0)}",
+                                          style: const TextStyle(
+                                            color: Color(0xFF1565C0),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )),
+                          ],
                         ),
                       ),
 
-                      const SizedBox(width: 14),
+                      const SizedBox(height: 16),
 
-                      Expanded(
+                      // Total Card
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            buildPriceRow("Subtotal", "₹${o.subtotal.toStringAsFixed(0)}"),
+                            const SizedBox(height: 10),
+                            buildPriceRow("Shipping Charges", o.shippingCharges == 0 ? "FREE" : "₹${o.shippingCharges.toStringAsFixed(0)}"),
+                            const SizedBox(height: 10),
+                            buildPriceRow("Tax (18%)", "₹${o.taxAmount.toStringAsFixed(0)}"),
+                            const Divider(height: 26),
+                            buildPriceRow("Total Amount", "₹${o.totalAmount.toStringAsFixed(0)}", isBold: true),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Action Track Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
                         child: ElevatedButton.icon(
                           onPressed: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    const OrderTrackingScreen(),
+                                builder: (context) => OrderTrackingScreen(order: o),
                               ),
                             );
                           },
-                          icon: const Icon(Icons.local_shipping),
-                          label: const Text("Track"),
+                          icon: const Icon(Icons.local_shipping, color: Colors.white),
+                          label: const Text(
+                            "Live Order Tracking",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xff2D0C8B),
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(double.infinity, 55),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                         ),
                       ),
+
+                      const SizedBox(height: 30),
                     ],
                   ),
-
-                  const SizedBox(height: 30),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  // SECTION CARD
   Widget buildSectionCard({
     required String title,
     required List<Widget> children,
@@ -298,7 +286,8 @@ class OrderDetailsScreen extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,49 +296,42 @@ class OrderDetailsScreen extends StatelessWidget {
             title,
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
-
           const SizedBox(height: 16),
-
           ...children,
         ],
       ),
     );
   }
 
-  // INFO TILE
   Widget buildTile(IconData icon, String title, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         children: [
           Container(
-            height: 42,
-            width: 42,
+            height: 38,
+            width: 38,
             decoration: BoxDecoration(
-              color: Colors.deepPurple.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xff2D0C8B).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: Colors.deepPurple, size: 22),
+            child: Icon(icon, color: const Color(0xff2D0C8B), size: 20),
           ),
-
-          const SizedBox(width: 14),
-
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 ),
-
-                const SizedBox(height: 4),
-
+                const SizedBox(height: 2),
                 Text(
                   value,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: 15,
+                    fontSize: 14,
                   ),
                 ),
               ],
@@ -360,7 +342,6 @@ class OrderDetailsScreen extends StatelessWidget {
     );
   }
 
-  // PRICE ROW
   Widget buildPriceRow(String title, String value, {bool isBold = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -368,18 +349,17 @@ class OrderDetailsScreen extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            fontSize: 15,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+            fontSize: isBold ? 16 : 14,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             color: isBold ? Colors.black : Colors.grey.shade700,
           ),
         ),
-
         Text(
           value,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: isBold ? 18 : 14,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: isBold ? Colors.deepPurple : Colors.black,
+            color: isBold ? const Color(0xFF1565C0) : Colors.black,
           ),
         ),
       ],
